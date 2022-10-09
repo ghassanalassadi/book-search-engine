@@ -8,12 +8,11 @@ const resolvers = {
             if (context.user) {
                 return User.findOne({ _id: context.user._id })
                     .select("-__v -password")
-                    .populate('books');
+                    .populate('savedBooks');
             }
             throw new AuthenticationError("You need to be logged in!");
         }
     },
-    
     Mutation: {
         addUser: async (parent, args) => {
             const user = await User.create(args);
@@ -34,30 +33,28 @@ const resolvers = {
             }
 
             const token = signToken(user);
-
             return { token, user };
         },
-        saveBook: async (parent, {bookData}, context) => {
+        saveBook: async (parent, args, context) => {
             if (context.user) {
-                const updatingUser = await User.findByIdAndUpdate(
+                const updatedUser = await User.findOneAndUpdate(
                     { _id: context.user._id },
-                    {$push: {savedBooks: bookData}},
-                    {new: true}
+                    { $addToSet: { savedBooks: args.bookData } },
+                    {new: true, runValidators: true }
             );
-
-            return updatingUser;
+            return updatedUser;
         }
         throw new AuthenticationError('You need to be logged in!');
         },
         removeBook: async (parent, {bookId}, context) => {
             if (context.user) {
-                const updatingUser = await User.findOneAndUpdate(
+                const updatedUser = await User.findOneAndUpdate(
                     { _id: context.user._id },
-                    {$pull: {savedBooks: {bookId}}},
+                    {$pull: { savedBooks: { bookId }}},
                     { new: true }
                 );
 
-                return updatingUser;
+                return updatedUser;
             }
             throw new AuthenticationError("You need to be logged in!");
         }
